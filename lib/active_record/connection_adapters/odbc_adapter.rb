@@ -48,6 +48,7 @@ begin
         trace = config[:trace] || false
         conv_num_lits = config[:convert_numeric_literals] || false
         emulate_bools = config[:emulate_booleans] || false
+        ruby_string_encoding = config[:ruby_string_encoding] || nil
 
         if config.has_key?(:dsn)
 	  # Connect using dsn, username, password
@@ -55,7 +56,8 @@ begin
           conn_opts = {
               :dsn => dsn, :username => username, :password => password,
               :trace => trace, :conv_num_lits => conv_num_lits,
-              :emulate_booleans => emulate_bools
+              :emulate_booleans => emulate_bools,
+              :ruby_string_encoding => ruby_string_encoding
           }
         else
 	  # Connect using ODBC connection string
@@ -74,7 +76,8 @@ begin
           conn_opts = {
               :conn_str => config[:conn_str], :driver => driver,
               :trace => trace, :conv_num_lits => conv_num_lits,
-              :emulate_booleans => emulate_bools
+              :emulate_booleans => emulate_bools,
+              :ruby_string_encoding => ruby_string_encoding
           }
         end
         conn.autocommit = true
@@ -1556,6 +1559,15 @@ begin
             # Enforce LIMIT
             if limit > 0 && rRows && rRows.length > limit then
               rRows.slice!(limit..(rRows.length-1))
+            end
+          end
+
+          ## Adjust Ruby string encoding, if requested
+          if enc=@connection_options[:ruby_string_encoding]
+            rRows.map! do |row|
+              row.map do |elt|
+                elt.is_a?(String) ? elt.force_encoding(enc) : elt
+              end
             end
           end
 
