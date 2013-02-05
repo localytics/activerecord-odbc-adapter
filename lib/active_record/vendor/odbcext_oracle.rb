@@ -25,7 +25,7 @@
 #
 
 module ODBCExt
-  
+
   # ------------------------------------------------------------------------
   # Mandatory methods
   #
@@ -33,10 +33,10 @@ module ODBCExt
   # #last_insert_id must be implemented for any database which returns
   # false from #prefetch_primary_key?
   # (This adapter returns true for Oracle)
-  
+
   #def last_insert_id(table, sequence_name, stmt = nil)
   #end
-  
+
   # #next_sequence_value must be implemented for any database which returns
   # true from #prefetch_primary_key?
   #
@@ -48,30 +48,30 @@ module ODBCExt
     #@logger.unknown("args=[#{sequence_name}]") if @trace
     select_one("select #{sequence_name}.nextval id from dual")['id']
   end
-  
+
   # ------------------------------------------------------------------------
   # Optional methods
   #
   # These are supplied for a DBMS only if necessary.
   # ODBCAdapter tests for optional methods using Object#respond_to?
-  
+
   # Pre action for ODBCAdapter#insert
   # def pre_insert(sql, name, pk, id_value, sequence_name)
   # end
-  
+
   # Post action for ODBCAdapter#insert
   # def post_insert(sql, name, pk, id_value, sequence_name)
   # end
-  
+
   # ------------------------------------------------------------------------
   # Method redefinitions
   #
-  # DBMS specific methods which override the default implementation 
-  # provided by the ODBCAdapter core.  
-  
+  # DBMS specific methods which override the default implementation
+  # provided by the ODBCAdapter core.
+
   def quoted_date(value)
     @logger.unknown("ODBCAdapter#quoted_date>") if @trace
-    # Ideally, we'd return an ODBC date or timestamp literal escape 
+    # Ideally, we'd return an ODBC date or timestamp literal escape
     # sequence, but not all ODBC drivers support them.
     if value.acts_like?(:time) # Time, DateTime
       #%Q!{ts '#{value.strftime("%Y-%m-%d %H:%M:%S")}'}!
@@ -81,21 +81,21 @@ module ODBCExt
       "to_timestamp(\'#{value.strftime("%Y-%m-%d")}\', \'YYYY-MM-DD\')"
     end
   end
-  
+
   def create_table(name, options = {})
     @logger.unknown("ODBCAdapter#create_table>") if @trace
     super(name, options)
     # Some ActiveRecord tests insert using an explicit id value. Starting the
     # primary key sequence from 10000 eliminates collisions (and subsequent
-    # complaints from Oracle of integrity constraint violations) between id's 
+    # complaints from Oracle of integrity constraint violations) between id's
     # generated from the sequence and explicitly supplied ids.
     # Using explicit and generated id's together should be avoided.
-    execute "CREATE SEQUENCE #{name}_seq START WITH 10000" unless options[:id] == false          
+    execute "CREATE SEQUENCE #{name}_seq START WITH 10000" unless options[:id] == false
   rescue Exception => e
     @logger.unknown("exception=#{e}") if @trace
     raise
   end
-  
+
   def rename_table(name, new_name)
     @logger.unknown("ODBCAdapter#rename_table>") if @trace
     execute "RENAME #{name} TO #{new_name}"
@@ -104,11 +104,11 @@ module ODBCExt
     @logger.unknown("exception=#{e}") if @trace
     raise
   end
-  
+
   def drop_table(name, options = {})
     @logger.unknown("ODBCAdapter#drop_table>") if @trace
     super(name, options)
-    execute "DROP SEQUENCE #{name}_seq"          
+    execute "DROP SEQUENCE #{name}_seq"
   rescue Exception => e
     if e.message !~ /ORA-02289/i
       # Error "ORA-02289: sequence does not exist" will be generated
@@ -117,7 +117,7 @@ module ODBCExt
       raise
     end
   end
-  
+
   def remove_column(table_name, column_name)
     @logger.unknown("ODBCAdapter#remove_column>") if @trace
     execute "ALTER TABLE #{quote_table_name(table_name)} DROP COLUMN #{quote_column_name(column_name)}"
@@ -135,7 +135,7 @@ module ODBCExt
     @logger.unknown("exception=#{e}") if @trace
     raise
   end
-  
+
   def change_column_default(table_name, column_name, default)
     @logger.unknown("ODBCAdapter#change_column_default>") if @trace
     execute "ALTER TABLE #{table_name} MODIFY #{column_name} DEFAULT #{quote(default)}"
@@ -143,7 +143,7 @@ module ODBCExt
     @logger.unknown("exception=#{e}") if @trace
     raise
   end
-  
+
   def rename_column(table_name, column_name, new_column_name)
     @logger.unknown("ODBCAdapter#rename_column>") if @trace
     execute "ALTER TABLE #{table_name} RENAME COLUMN #{column_name} to #{new_column_name}"
@@ -151,7 +151,7 @@ module ODBCExt
     @logger.unknown("exception=#{e}") if @trace
     raise
   end
-  
+
   def remove_index(table_name, options = {})
     @logger.unknown("ODBCAdapter#remove_index>") if @trace
     execute "DROP INDEX #{quote_column_name(index_name(table_name, options))}"
@@ -159,45 +159,45 @@ module ODBCExt
     @logger.unknown("exception=#{e}") if @trace
     raise
   end
-  
+
   def tables(name = nil)
-    # Hide dropped tables in Oracle's recyclebin. 
+    # Hide dropped tables in Oracle's recyclebin.
     super(name).delete_if {|t| t =~ /^BIN\$/i }
   end
-  
+
   def indexes(table_name, name = nil)
     # Oracle creates a unique index for a table's primary key.
-    # Hide any such index. Oracle uses system-generated names 
+    # Hide any such index. Oracle uses system-generated names
     # beginning with "SYS_" for implicitly generated schema objects.
     #
     # If this isn't done...
     # Rails' 'rake test_units' attempts to create this index explicitly,
-    # but Oracle rejects this as the index has already been created 
+    # but Oracle rejects this as the index has already been created
     # automatically when the table was defined.
     super(table_name, name).delete_if { |i| i.unique && i.name =~ /^SYS_/i }
   end
-  
+
   def structure_dump
     @logger.unknown("ODBCAdapter#structure_dump>") if @trace
     s = select_all("select sequence_name from user_sequences").inject("") do |structure, seq|
       structure << "create sequence #{seq.to_a.first.last};\n\n"
     end
-    
+
     select_all("select table_name from user_tables").inject(s) do |structure, table|
-      ddl = "create table #{table.to_a.first.last} (\n "  
+      ddl = "create table #{table.to_a.first.last} (\n "
       cols = select_all(%Q{
               select column_name, data_type, data_length, data_precision, data_scale, data_default, nullable
               from user_tab_columns
               where table_name = '#{table.to_a.first.last}'
               order by column_id
-            }).map do |row|              
-        col = "#{row['column_name'].downcase} #{row['data_type'].downcase}"      
+            }).map do |row|
+        col = "#{row['column_name'].downcase} #{row['data_type'].downcase}"
         if row['data_type'] =='NUMBER' and !row['data_precision'].nil?
           col << "(#{row['data_precision'].to_i}"
           col << ",#{row['data_scale'].to_i}" if !row['data_scale'].nil?
           col << ')'
         elsif row['data_type'].include?('CHAR')
-          col << "(#{row['data_length'].to_i})"  
+          col << "(#{row['data_length'].to_i})"
         end
         col << " default #{row['data_default']}" if !row['data_default'].nil?
         col << ' not null' if row['nullable'] == 'N'
@@ -211,9 +211,9 @@ module ODBCExt
     @logger.unknown("exception=#{e}") if @trace
     raise
   end
-  
+
   # ------------------------------------------------------------------------
   # Private methods to support methods above
-  # 
-  
+  #
+
 end # module

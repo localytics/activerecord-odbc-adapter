@@ -175,7 +175,7 @@ module ActiveRecord
       private
         def type_to_sql(name, limit)
           base.type_to_sql(name, limit) rescue name
-        end   
+        end
 
         def add_column_options!(sql, options)
           base.add_column_options!(sql, options.merge(:column => self))

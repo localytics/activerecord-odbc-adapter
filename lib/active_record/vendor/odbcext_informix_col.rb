@@ -26,8 +26,8 @@
 
 module ODBCColumnExt
 
-  #private 
-  
+  #private
+
   def default_preprocess(nativeType, default)
     return default if default.nil?
     if ["INTEGER", "SMALLINT"].include?(nativeType)
@@ -35,7 +35,7 @@ module ODBCColumnExt
       # Strip off first part
       dflt = default.strip
       if (indx = dflt.index(" "))
-        dflt = dflt[(indx + 1)...dflt.length] 
+        dflt = dflt[(indx + 1)...dflt.length]
         default.replace(dflt)
       end
     end

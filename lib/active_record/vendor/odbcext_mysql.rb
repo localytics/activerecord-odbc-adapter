@@ -24,12 +24,12 @@
 #  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 module ODBCExt
-  
+
   # ------------------------------------------------------------------------
   # Mandatory methods
   #
   # The ODBCAdapter core doesn't not implement these methods
-  
+
   # #last_insert_id must be implemented for any database which returns
   # false from #prefetch_primary_key?
   #
@@ -39,52 +39,52 @@ module ODBCExt
     @logger.unknown("ODBCAdapter#last_insert_id>") if @trace
     select_value("select LAST_INSERT_ID()", 'last_insert_id')
   end
-  
+
   # ------------------------------------------------------------------------
   # Optional methods
   #
   # These are supplied for a DBMS only if necessary.
   # ODBCAdapter tests for optional methods using Object#respond_to?
-  
+
   # Pre action for ODBCAdapter#insert
   # def pre_insert(sql, name, pk, id_value, sequence_name)
   # end
-  
+
   # Post action for ODBCAdapter#insert
   # def post_insert(sql, name, pk, id_value, sequence_name)
   # end
-  
+
   # ------------------------------------------------------------------------
   # Method redefinitions
   #
-  # DBMS specific methods which override the default implementation 
+  # DBMS specific methods which override the default implementation
   # provided by the ODBCAdapter core.
-  
+
   def quote_string(string)
     @logger.unknown("ODBCAdapter#quote_string>") if @trace
-    
+
     # MySQL requires backslashes to be escaped				
     string.gsub(/\\/, '\&\&').gsub(/'/, "''")
   end
-  
+
   def create_database(name)
     @logger.unknown("ODBCAdapter#create_database>") if @trace
-    @logger.unknown("args=[#{name}]") if @trace    
+    @logger.unknown("args=[#{name}]") if @trace
     execute "CREATE DATABASE `#{name}`"
   rescue Exception => e
     @logger.unknown("exception=#{e}") if @trace
-    raise    
+    raise
   end
 
   def drop_database(name)
     @logger.unknown("ODBCAdapter#drop_database>") if @trace
-    @logger.unknown("args=[#{name}]") if @trace    
+    @logger.unknown("args=[#{name}]") if @trace
     execute "DROP DATABASE IF EXISTS `#{name}`"
   rescue Exception => e
     @logger.unknown("exception=#{e}") if @trace
-    raise    
+    raise
   end
-  
+
   def create_table(name, options = {})
     @logger.unknown("ODBCAdapter#create_table>") if @trace
     super(name, {:options => "ENGINE=InnoDB"}.merge(options))
@@ -92,7 +92,7 @@ module ODBCExt
     @logger.unknown("exception=#{e}") if @trace
     raise
   end
-  
+
   def rename_table(name, new_name)
     @logger.unknown("ODBCAdapter#rename_table>") if @trace
     execute "RENAME TABLE #{name} TO #{new_name}"
@@ -100,19 +100,19 @@ module ODBCExt
     @logger.unknown("exception=#{e}") if @trace
     raise
   end
-  
+
   def change_column(table_name, column_name, type, options = {})
     @logger.unknown("ODBCAdapter#change_column>") if @trace
     # column_name.to_s used in case column_name is a symbol
     unless options_include_default?(options)
-      options[:default] = columns(table_name).find { |c| c.name == column_name.to_s }.default    
+      options[:default] = columns(table_name).find { |c| c.name == column_name.to_s }.default
     end
     change_column_sql = "ALTER TABLE #{table_name} CHANGE #{column_name} #{column_name} #{type_to_sql(type, options[:limit], options[:precision], options[:scale])}"
     add_column_options!(change_column_sql, options)
     execute(change_column_sql)
   rescue Exception => e
     @logger.unknown("exception=#{e}") if @trace
-    raise  
+    raise
   end
 
   def rename_column(table_name, column_name, new_column_name)
@@ -125,7 +125,7 @@ module ODBCExt
     @logger.unknown("exception=#{e}") if @trace
     raise
   end
-  
+
   def change_column_default(table_name, column_name, default)
     @logger.unknown("ODBCAdapter#change_column_default>") if @trace
     col = columns(table_name).find{ |c| c.name == column_name.to_s }
@@ -135,7 +135,7 @@ module ODBCExt
     @logger.unknown("exception=#{e}") if @trace
     raise
   end
-  
+
   def indexes(table_name, name = nil)
     # Skip primary key indexes
     super(table_name, name).delete_if { |i| i.unique && i.name =~ /^PRIMARY$/ }
@@ -150,7 +150,7 @@ module ODBCExt
     end
     super(options)
   end
-  
+
   def disable_referential_integrity(&block) #:nodoc:
     old = select_value("SELECT @@FOREIGN_KEY_CHECKS")
     begin
@@ -160,7 +160,7 @@ module ODBCExt
       update("SET FOREIGN_KEY_CHECKS = #{old}")
     end
   end
-          
+
   def structure_dump
     @logger.unknown("ODBCAdapter#structure_dump>") if @trace
     select_all("SHOW TABLES").inject("") do |structure, table|
@@ -170,5 +170,5 @@ module ODBCExt
     @logger.unknown("exception=#{e}") if @trace
     raise
   end
-          
+
 end

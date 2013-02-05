@@ -32,19 +32,19 @@ module ODBCExt
 
   # #last_insert_id must be implemented for any database which returns
   # false from #prefetch_primary_key?
-  
+
   def last_insert_id(table, sequence_name, stmt = nil)
     @logger.unknown("ODBCAdapter#last_insert_id>") if @trace
-    @logger.unknown("args=[#{table}]") if @trace    
-    # 1049 (SQL_LASTSERIAL) is an ODBC extension for SQLGetStmtOption  
+    @logger.unknown("args=[#{table}]") if @trace
+    # 1049 (SQL_LASTSERIAL) is an ODBC extension for SQLGetStmtOption
     stmt.get_option(1049)
   end
-  
+
   # ------------------------------------------------------------------------
   # Method redefinitions
   #
-  # DBMS specific methods which override the default implementation 
-  # provided by the ODBCAdapter core.  
+  # DBMS specific methods which override the default implementation
+  # provided by the ODBCAdapter core.
 
   def type_to_sql(type, limit = nil, precision = nil, scale = nil)
     if type == :decimal
@@ -56,7 +56,7 @@ module ODBCExt
     end
     super(type, limit, precision, scale)
   end
-  
+
   def quoted_date(value)
     @logger.unknown("ODBCAdapter#quoted_date>") if @trace
     @logger.unknown("args=[#{value}]") if @trace
@@ -69,10 +69,10 @@ module ODBCExt
       %Q!'#{value.strftime("%Y-%m-%d")}'!
     end
   end
-  
+
   def rename_table(name, new_name)
     @logger.unknown("ODBCAdapter#rename_table>") if @trace
-    @logger.unknown("args=[#{name}|#{new_name}]") if @trace    
+    @logger.unknown("args=[#{name}|#{new_name}]") if @trace
     execute "RENAME TABLE #{name} TO #{new_name}"
   rescue Exception => e
     @logger.unknown("exception=#{e}") if @trace
@@ -83,10 +83,10 @@ module ODBCExt
     @logger.unknown("ODBCAdapter#change_column>") if @trace
     @logger.unknown("args=[#{table_name}|#{column_name}|#{type}]") if @trace
     change_column_sql = "ALTER TABLE #{table_name} MODIFY #{column_name} " +
-        "#{type_to_sql(type, options[:limit], options[:precision], options[:scale])}" 
+        "#{type_to_sql(type, options[:limit], options[:precision], options[:scale])}"
     # Add any :null and :default options
     add_column_options!(change_column_sql, options)
-    execute(change_column_sql)    
+    execute(change_column_sql)
   rescue Exception => e
     @logger.unknown("exception=#{e}") if @trace
     raise ActiveRecord::ActiveRecordError, e.message
@@ -105,7 +105,7 @@ module ODBCExt
 
   def rename_column(table_name, column_name, new_column_name)
     @logger.unknown("ODBCAdapter#rename_column>") if @trace
-    @logger.unknown("args=[#{table_name}|#{column_name}|#{new_column_name}]") if @trace    
+    @logger.unknown("args=[#{table_name}|#{column_name}|#{new_column_name}]") if @trace
     execute "RENAME COLUMN #{table_name}.#{column_name} TO #{new_column_name}"
   rescue Exception => e
     @logger.unknown("exception=#{e}") if @trace
@@ -114,7 +114,7 @@ module ODBCExt
 
   def remove_index(table_name, options = {})
     @logger.unknown("ODBCAdapter#remove_index>") if @trace
-    @logger.unknown("args=[#{table_name}]") if @trace    
+    @logger.unknown("args=[#{table_name}]") if @trace
     execute "DROP INDEX #{quote_column_name(index_name(table_name, options))}"
   rescue Exception => e
     @logger.unknown("exception=#{e}") if @trace
@@ -122,11 +122,11 @@ module ODBCExt
   end
 
   def tables(name = nil)
-    # Hide the system tables. Some contain columns which don't have an 
+    # Hide the system tables. Some contain columns which don't have an
     # equivalent ODBC SQL type which causes problems with #columns.
     super(name).delete_if {|t| t =~ /^sys/i }
   end
-  
+
   def indexes(table_name, name = nil)
     # Informix creates a unique index for a table's primary key.
     # Hide any such index. The index name takes the form ddd_ddd.
@@ -134,11 +134,11 @@ module ODBCExt
     # with a letter or an # underscore.)
     #
     # If this isn't done...
-    # Rails' 'rake test_units' attempts to create primary key indexes 
+    # Rails' 'rake test_units' attempts to create primary key indexes
     # explicitly when creating the test database schema. Informix rejects
     # the resulting 'CREATE UNIQUE INDEX ddd_ddd' commands with a syntax
     # error.
     super(table_name, name).delete_if { |i| i.unique && i.name =~ /\d+_\d+/ }
   end
-  
+
 end # module

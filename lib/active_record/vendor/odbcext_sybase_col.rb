@@ -25,25 +25,25 @@
 #
 
 module ODBCColumnExt
-  
+
   # Is the column a numeric autoincrementing column?
   def auto_unique?
     @autounique
   end
-  
+
   private
-  
+
   def autoUnique?
     @nativeType =~ /\bidentity\b/i
   end
-  
+
   #private
-  
+
   def default_preprocess(nativeType, default)
     return default if default.nil?
     default.replace($2.strip) if default =~ /(DEFAULT +)(.*)/i
     default.replace($1) if default =~ /^'(.*)'$/
     default
   end
-  
+
 end # module

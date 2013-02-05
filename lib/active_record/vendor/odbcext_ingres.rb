@@ -27,7 +27,7 @@
 require 'active_record/connection_adapters/abstract_adapter'
 
 module ODBCExt
-  
+
   # ------------------------------------------------------------------------
   # Mandatory methods
   #
@@ -35,10 +35,10 @@ module ODBCExt
   # #last_insert_id must be implemented for any database which returns
   # false from #prefetch_primary_key?
   # (This adapter returns true for Ingres)
-  
+
   #def last_insert_id(table, sequence_name, stmt = nil)
   #end
-  
+
   # #next_sequence_value must be implemented for any database which returns
   # true from #prefetch_primary_key?
   #
@@ -50,52 +50,52 @@ module ODBCExt
     @logger.unknown("args=[#{sequence_name}]") if @trace
     select_one("select #{sequence_name}.nextval id")['id']
   end
-  
+
   # ------------------------------------------------------------------------
   # Optional methods
   #
   # These are supplied for a DBMS only if necessary.
   # ODBCAdapter tests for optional methods using Object#respond_to?
-  
+
   # Pre action for ODBCAdapter#insert
   # def pre_insert(sql, name, pk, id_value, sequence_name)
   # end
-  
+
   # Post action for ODBCAdapter#insert
   # def post_insert(sql, name, pk, id_value, sequence_name)
   # end
-  
+
   # ------------------------------------------------------------------------
   # Method redefinitions
   #
-  # DBMS specific methods which override the default implementation 
+  # DBMS specific methods which override the default implementation
   # provided by the ODBCAdapter core.
-  
+
   def create_table(name, options = {})
     @logger.unknown("ODBCAdapter#create_table>") if @trace
     @logger.unknown("args=[#{name}]") if @trace
     #ALTER TABLE ADD COLUMN not allowed with default page size of 2K
     super(name, {:options => "WITH PAGE_SIZE=8192"}.merge(options))
-    execute "CREATE SEQUENCE #{name}_seq"          
+    execute "CREATE SEQUENCE #{name}_seq"
   rescue Exception => e
     @logger.unknown("exception=#{e}") if @trace
     raise ActiveRecord::ActiveRecordError, e.message
   end
-  
+
   def drop_table(name, options = {})
     @logger.unknown("ODBCAdapter#drop_table>") if @trace
     @logger.unknown("args=[#{name}]") if @trace
     super(name, options)
-    execute "DROP SEQUENCE #{name}_seq"          
+    execute "DROP SEQUENCE #{name}_seq"
   rescue Exception => e
     @logger.unknown("exception=#{e}") if @trace
     raise ActiveRecord::ActiveRecordError, e.message
   end
-  
+
   def add_column(table_name, column_name, type, options = {})
     @logger.unknown("ODBCAdapter#add_column>") if @trace
     @logger.unknown("args=[#{table_name}|#{column_name}]") if @trace
-    
+
     sql = "ALTER TABLE #{quote_table_name(table_name)} ADD #{quote_column_name(column_name)} #{type_to_sql(type, options[:limit], options[:precision], options[:scale])}"
     sql << " DEFAULT #{quote(options[:default], options[:column])}" unless options[:default].nil?
 
@@ -125,15 +125,15 @@ module ODBCExt
     @logger.unknown("ODBCAdapter#change_column>") if @trace
     @logger.unknown("args=[#{table_name}|#{column_name}|#{type}]") if @trace
     change_column_sql = "ALTER TABLE #{table_name} ALTER #{column_name} " +
-        "#{type_to_sql(type, options[:limit], options[:precision], options[:scale])}" 
+        "#{type_to_sql(type, options[:limit], options[:precision], options[:scale])}"
     # Add any :null and :default options
     add_column_options!(change_column_sql, options)
-    execute(change_column_sql)    
+    execute(change_column_sql)
   rescue Exception => e
     @logger.unknown("exception=#{e}") if @trace
     raise ActiveRecord::ActiveRecordError, e.message
   end
-      
+
   def remove_index(table_name, options = {})
     @logger.unknown("ODBCAdapter#remove_index>") if @trace
     @logger.unknown("args=[#{table_name}]") if @trace

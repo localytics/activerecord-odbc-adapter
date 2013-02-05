@@ -25,16 +25,16 @@
 #
 
 module ODBCColumnExt
-  
+
   # Is the column a numeric autoincrementing column?
   def auto_unique?
     @autounique
   end
-  
+
   private
-  
+
   def autoUnique?
     @nativeType =~ /\bidentity\b/i
   end
-  
+
 end # module

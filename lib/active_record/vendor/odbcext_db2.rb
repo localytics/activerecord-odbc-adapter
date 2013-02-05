@@ -32,22 +32,22 @@ module ODBCExt
 
   # #last_insert_id must be implemented for any database which returns
   # false from #prefetch_primary_key?
-  
+
   def last_insert_id(table, sequence_name, stmt = nil)
     @logger.unknown("ODBCAdapter#last_insert_id>") if @trace
     @logger.unknown("args=[#{table}]") if @trace
-    select_value("VALUES IDENTITY_VAL_LOCAL()", 'last_insert_id')    
+    select_value("VALUES IDENTITY_VAL_LOCAL()", 'last_insert_id')
   end
-  
+
   # ------------------------------------------------------------------------
   # Method redefinitions
   #
-  # DBMS specific methods which override the default implementation 
-  # provided by the ODBCAdapter core.  
+  # DBMS specific methods which override the default implementation
+  # provided by the ODBCAdapter core.
 
   def rename_table(name, new_name)
     @logger.unknown("ODBCAdapter#rename_table>") if @trace
-    @logger.unknown("args=[#{name}|#{new_name}]") if @trace    
+    @logger.unknown("args=[#{name}|#{new_name}]") if @trace
     execute "RENAME TABLE #{name} TO #{new_name}"
   rescue Exception => e
     @logger.unknown("exception=#{e}") if @trace
@@ -56,7 +56,7 @@ module ODBCExt
 
   def change_column_default(table_name, column_name, default)
     @logger.unknown("ODBCAdapter#change_column_default>") if @trace
-    @logger.unknown("args=[#{table_name}|#{column_name}]") if @trace    
+    @logger.unknown("args=[#{table_name}|#{column_name}]") if @trace
     execute "ALTER TABLE #{table_name} ALTER #{column_name} SET DEFAULT #{quote(default)}"
   rescue Exception => e
     @logger.unknown("exception=#{e}") if @trace
@@ -65,14 +65,14 @@ module ODBCExt
 
   def remove_column(table_name, column_name)
     @logger.unknown("ODBCAdapter#remove_column>\n" +
-                    "args=[#{table_name}|#{column_name}]\n" + 
+                    "args=[#{table_name}|#{column_name}]\n" +
                     "exception=remove_column is not supported") if @trace
     raise ActiveRecord::ActiveRecordError, "remove_column is not supported"
   end
 
   def remove_index(table_name, options = {})
     @logger.unknown("ODBCAdapter#remove_index>") if @trace
-    @logger.unknown("args=[#{table_name}]") if @trace    
+    @logger.unknown("args=[#{table_name}]") if @trace
     execute "DROP INDEX #{quote_column_name(index_name(table_name, options))}"
   rescue Exception => e
     @logger.unknown("exception=#{e}") if @trace
@@ -83,5 +83,5 @@ module ODBCExt
     # Hide primary key indexes
     super(table_name, name).delete_if { |i| i.unique && i.name =~ /^sql\d+$/ }
   end
-  
+
 end # module

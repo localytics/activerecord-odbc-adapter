@@ -53,8 +53,8 @@ wantedBasenamePrefixes = [
  "informix", "ingres", "virtuoso", "oracle_odbc"
 ]
 
-# Files in public ActiveRecord source tree which have been modified for 
-# ODBC adapter    
+# Files in public ActiveRecord source tree which have been modified for
+# ODBC adapter
 modifiedFiles = [
   "./test/base_test.rb",
   "./test/migration_test.rb",
@@ -69,7 +69,7 @@ FileUtils.mkdir_p(File.join($PACK_ROOT, 'new_files/lib/active_record/connection_
 FileUtils.mkdir_p(File.join($PACK_ROOT, 'new_files/lib/active_record/vendor'))
 FileUtils.mkdir_p(File.join($PACK_ROOT, 'new_files/test/fixtures/db_definitions'))
 FileUtils.mkdir_p(File.join($PACK_ROOT, 'new_files/test/connections/native_odbc'))
-FileUtils.mkdir_p(File.join($PACK_ROOT, 
+FileUtils.mkdir_p(File.join($PACK_ROOT,
     'modified_files/lib/active_record/connection_adapters/abstract'))
 FileUtils.mkdir_p(File.join($PACK_ROOT, 'modified_files/test'))
 
@@ -91,7 +91,7 @@ Find.find(".") { |f|
     FileUtils.cp(f, File.join($PACK_ROOT, "new_files", *f.split(/\//)),
     :verbose => true)
   end
-}  
+}
 
 f = "./test/connections/native_odbc/connection.rb"
 FileUtils.cp(f, File.join($PACK_ROOT, "new_files", *f.split(/\//)),
@@ -107,7 +107,7 @@ Find.find(".") { |f|
       end
     end
   end
-}  
+}
 
 modifiedFiles.each do |f|
   FileUtils.cp(f, File.join($PACK_ROOT, "modified_files", *f.split(/\//)),

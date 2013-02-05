@@ -24,7 +24,7 @@ if ActiveRecord::Base.connection.supports_migrations?
 
   class MigrationTest < Test::Unit::TestCase
     self.use_transactional_fixtures = false
-    
+
     fixtures :people
 
     def setup
@@ -53,11 +53,11 @@ if ActiveRecord::Base.connection.supports_migrations?
 
     def test_add_index
       if current_adapter?(:ODBCAdapter) && ActiveRecord::Base.connection.dbmsName == :informix
-        # Index on (last_name, first_name) exceeds max. index width supported by Informix if 
+        # Index on (last_name, first_name) exceeds max. index width supported by Informix if
         # both columns are created with a default width of 255, in which case
-        # Informix may return error -517: "The total size of the index is too large..."        
-        Person.connection.add_column "people", "last_name", :string, {:limit => 40}       
-      else      
+        # Informix may return error -517: "The total size of the index is too large..."
+        Person.connection.add_column "people", "last_name", :string, {:limit => 40}
+      else
         # Limit size of last_name and key columns to support Firebird index limitations
         Person.connection.add_column "people", "last_name", :string, :limit => 100
       end
@@ -88,7 +88,7 @@ if ActiveRecord::Base.connection.supports_migrations?
         assert_nothing_raised { Person.connection.add_index("people", ["key"], :name => "key_idx", :unique => true) }
         assert_nothing_raised { Person.connection.remove_index("people", :name => "key_idx", :unique => true) }
       end
-      
+
       # Sybase adapter does not support indexes on :boolean columns
       # OpenBase does not have named indexes.  You must specify a single column
       unless current_adapter?(:SybaseAdapter, :OpenBaseAdapter) ||
@@ -211,16 +211,16 @@ if ActiveRecord::Base.connection.supports_migrations?
       Person.connection.create_table :testings do |t|
         t.column :foo, :string
       end
-      
-      con = Person.connection     
+
+      con = Person.connection
       Person.connection.enable_identity_insert("testings", true) if current_adapter?(:SybaseAdapter)
       Person.connection.execute "insert into testings (#{con.quote_column_name('id')}, #{con.quote_column_name('foo')}) values (1, 'hello')"
       Person.connection.enable_identity_insert("testings", false) if current_adapter?(:SybaseAdapter)
       if current_adapter?(:ODBCAdapter) && ActiveRecord::Base.connection.dbmsName == :ingres
         # Ingres requires that if 'ALTER TABLE table ADD column' specifies a NOT NULL constraint,
-        # then 'WITH DEFAULT' must also be specified *without* a default value.        
+        # then 'WITH DEFAULT' must also be specified *without* a default value.
         assert_nothing_raised {Person.connection.add_column :testings, :bar, :string, :null => false}
-      else     
+      else
         assert_nothing_raised {Person.connection.add_column :testings, :bar, :string, :null => false, :default => "default" }
       end
 
@@ -313,11 +313,11 @@ if ActiveRecord::Base.connection.supports_migrations?
 
       # Test for 30 significent digits (beyond the 16 of float), 10 of them
       # after the decimal place.
-     
+
       unless current_adapter?(:SQLite3Adapter)
         assert_equal BigDecimal.new("0012345678901234567890.0123456789"), bob.wealth
       end
-      
+
       assert_equal true, bob.male?
 
       assert_equal String, bob.first_name.class
@@ -327,7 +327,7 @@ if ActiveRecord::Base.connection.supports_migrations?
       assert_equal Time, bob.birthday.class
 
       if current_adapter?(:SQLServerAdapter, :OracleAdapter, :SybaseAdapter) ||
-         (current_adapter?(:ODBCAdapter) && 
+         (current_adapter?(:ODBCAdapter) &&
          [:ingres, :oracle, :microsoftsqlserver].include?(ActiveRecord::Base.connection.dbmsName))
         # SQL Server, Sybase, Oracle and Ingres don't differentiate between date/time
         assert_equal Time, bob.favorite_day.class
@@ -355,7 +355,7 @@ if ActiveRecord::Base.connection.supports_migrations?
         ActiveRecord::Migration.add_column :people, :intelligence_quotient, :tinyint
         Person.reset_column_information
         Person.create :intelligence_quotient => 300
-        jonnyg = Person.find(:first) 
+        jonnyg = Person.find(:first)
         assert_equal 127, jonnyg.intelligence_quotient
         jonnyg.destroy
       ensure
@@ -393,7 +393,7 @@ if ActiveRecord::Base.connection.supports_migrations?
 
     # Ingres, Virtuoso:
     # Neither supports renaming of columns. Skip test.
-    unless current_adapter?(:ODBCAdapter) && 
+    unless current_adapter?(:ODBCAdapter) &&
         [:ingres, :virtuoso].include?(ActiveRecord::Base.connection.dbmsName)
       def test_add_rename
         Person.delete_all
@@ -417,7 +417,7 @@ if ActiveRecord::Base.connection.supports_migrations?
     end
 
     # Ingres and Virtuoso don't support renaming of columns. Skip test.
-    unless current_adapter?(:ODBCAdapter) && [:ingres, :virtuoso].include?(ActiveRecord::Base.connection.dbmsName)    
+    unless current_adapter?(:ODBCAdapter) && [:ingres, :virtuoso].include?(ActiveRecord::Base.connection.dbmsName)
     def test_rename_column_using_symbol_arguments
       begin
         names_before = Person.find(:all).map(&:first_name)
@@ -432,7 +432,7 @@ if ActiveRecord::Base.connection.supports_migrations?
     end
     end
 
-    unless current_adapter?(:ODBCAdapter) && [:ingres, :virtuoso].include?(ActiveRecord::Base.connection.dbmsName)    
+    unless current_adapter?(:ODBCAdapter) && [:ingres, :virtuoso].include?(ActiveRecord::Base.connection.dbmsName)
     def test_rename_column
       begin
         names_before = Person.find(:all).map(&:first_name)
@@ -457,12 +457,12 @@ if ActiveRecord::Base.connection.supports_migrations?
         Person.connection.add_column("people", "first_name", :string) rescue nil
       end
     end
-    
+
     def test_change_type_of_not_null_column
       assert_nothing_raised do
         Topic.connection.change_column "topics", "written_on", :datetime, :null => false
         Topic.reset_column_information
-        
+
         Topic.connection.change_column "topics", "written_on", :datetime, :null => false
         Topic.reset_column_information
       end
@@ -478,7 +478,7 @@ if ActiveRecord::Base.connection.supports_migrations?
         ActiveRecord::Base.connection.rename_table :octopuses, :octopi
 
         # Using explicit id in insert for compatibility across all databases
-        con = ActiveRecord::Base.connection     
+        con = ActiveRecord::Base.connection
         con.enable_identity_insert("octopi", true) if current_adapter?(:SybaseAdapter)
         assert_nothing_raised { con.execute "INSERT INTO octopi (#{con.quote_column_name('id')}, #{con.quote_column_name('url')}) VALUES (1, 'http://www.foreverflying.com/octopus-black7.jpg')" }
         con.enable_identity_insert("octopi", false) if current_adapter?(:SybaseAdapter)
@@ -491,9 +491,9 @@ if ActiveRecord::Base.connection.supports_migrations?
       end
     end
     end
-    
+
     def test_change_column_nullability
-      Person.delete_all 
+      Person.delete_all
       Person.connection.add_column "people", "funny", :boolean
       Person.reset_column_information
       assert Person.columns_hash["funny"].null, "Column 'funny' must initially allow nulls"
@@ -513,11 +513,11 @@ if ActiveRecord::Base.connection.supports_migrations?
           t.column :url, :string
         end
         ActiveRecord::Base.connection.add_index :octopuses, :url
-        
+
         ActiveRecord::Base.connection.rename_table :octopuses, :octopi
 
         # Using explicit id in insert for compatibility across all databases
-        con = ActiveRecord::Base.connection     
+        con = ActiveRecord::Base.connection
         con.enable_identity_insert("octopi", true) if current_adapter?(:SybaseAdapter)
         assert_nothing_raised { con.execute "INSERT INTO octopi (#{con.quote_column_name('id')}, #{con.quote_column_name('url')}) VALUES (1, 'http://www.foreverflying.com/octopus-black7.jpg')" }
         con.enable_identity_insert("octopi", false) if current_adapter?(:SybaseAdapter)
@@ -534,7 +534,7 @@ if ActiveRecord::Base.connection.supports_migrations?
     # Virtuoso disallows virtually all column type conversions.
     # Conversion between any of the native types used by the ActiveRecord generic types is not allowed.
     # Skip the test.
-    unless current_adapter?(:ODBCAdapter) && [:virtuoso].include?(ActiveRecord::Base.connection.dbmsName)    
+    unless current_adapter?(:ODBCAdapter) && [:virtuoso].include?(ActiveRecord::Base.connection.dbmsName)
     def test_change_column
         #Ingres doesn't support changing an integer column to varchar/text.
         if current_adapter?(:ODBCAdapter) && [:ingres].include?(ActiveRecord::Base.connection.dbmsName)
@@ -544,7 +544,7 @@ if ActiveRecord::Base.connection.supports_migrations?
           initial_type = :integer
           new_type = :string
         end
-        
+
         Person.connection.add_column 'people', 'age', initial_type
       old_columns = Person.connection.columns(Person.table_name, "#{name} Columns")
       assert old_columns.find { |c| c.name == 'age' and c.type == initial_type }
@@ -556,7 +556,7 @@ if ActiveRecord::Base.connection.supports_migrations?
       assert new_columns.find { |c| c.name == 'age' and c.type == new_type }
 
       # Sybase ASE's ALTER TABLE doesn't support altering a column's DEFAULT definition.
-      unless current_adapter?(:ODBCAdapter) && [:sybase].include?(ActiveRecord::Base.connection.dbmsName)    
+      unless current_adapter?(:ODBCAdapter) && [:sybase].include?(ActiveRecord::Base.connection.dbmsName)
       old_columns = Topic.connection.columns(Topic.table_name, "#{name} Columns")
       assert old_columns.find { |c| c.name == 'approved' and c.type == :boolean and c.default == true }
       assert_nothing_raised { Topic.connection.change_column :topics, :approved, :boolean, :default => false }
@@ -567,14 +567,14 @@ if ActiveRecord::Base.connection.supports_migrations?
       end
       end
     end
-    
+
     # Sybase ASE's ALTER TABLE doesn't support altering a column's DEFAULT definition.
-    unless current_adapter?(:ODBCAdapter) && [:ingres, :sybase].include?(ActiveRecord::Base.connection.dbmsName)    
+    unless current_adapter?(:ODBCAdapter) && [:ingres, :sybase].include?(ActiveRecord::Base.connection.dbmsName)
     def test_change_column_with_nil_default
       Person.connection.add_column "people", "contributor", :boolean, :default => true
       Person.reset_column_information
       assert Person.new.contributor?
-      
+
       assert_nothing_raised { Person.connection.change_column "people", "contributor", :boolean, :default => nil }
       Person.reset_column_information
       assert !Person.new.contributor?
@@ -586,7 +586,7 @@ if ActiveRecord::Base.connection.supports_migrations?
 
     # Ingres doesn't support ALTER TABLE ADD COLUMN WITH NULL WITH DEFAULT.
     # Sybase ASE's ALTER TABLE doesn't support altering a column's DEFAULT definition.
-    unless current_adapter?(:ODBCAdapter) && [:ingres, :sybase].include?(ActiveRecord::Base.connection.dbmsName)    
+    unless current_adapter?(:ODBCAdapter) && [:ingres, :sybase].include?(ActiveRecord::Base.connection.dbmsName)
     def test_change_column_with_new_default
       Person.connection.add_column "people", "administrator", :boolean, :default => true
       Person.reset_column_information
@@ -599,9 +599,9 @@ if ActiveRecord::Base.connection.supports_migrations?
       Person.connection.remove_column("people", "administrator") rescue nil
     end
     end
-    
+
     # Sybase ASE's ALTER TABLE doesn't support altering a column's DEFAULT definition.
-    unless current_adapter?(:ODBCAdapter) && [:sybase].include?(ActiveRecord::Base.connection.dbmsName)    
+    unless current_adapter?(:ODBCAdapter) && [:sybase].include?(ActiveRecord::Base.connection.dbmsName)
     def test_change_column_default
       Person.connection.change_column_default "people", "first_name", "Tester"
       Person.reset_column_information
@@ -622,7 +622,7 @@ if ActiveRecord::Base.connection.supports_migrations?
     end
 
     # Sybase ASE's ALTER TABLE doesn't support altering a column's DEFAULT definition.
-    unless current_adapter?(:ODBCAdapter) && [:sybase].include?(ActiveRecord::Base.connection.dbmsName)    
+    unless current_adapter?(:ODBCAdapter) && [:sybase].include?(ActiveRecord::Base.connection.dbmsName)
     def test_change_column_default_to_null
       Person.connection.change_column_default "people", "first_name", nil
       Person.reset_column_information
@@ -634,8 +634,8 @@ if ActiveRecord::Base.connection.supports_migrations?
       assert !Reminder.table_exists?
 
       WeNeedReminders.up
-      
-      assert Reminder.create("content" => "hello world", "remind_at" => Time.now)  
+
+      assert Reminder.create("content" => "hello world", "remind_at" => Time.now)
       assert_equal "hello world", Reminder.find(:first).content
 
       WeNeedReminders.down
@@ -863,7 +863,7 @@ if ActiveRecord::Base.connection.supports_migrations?
         if current_adapter?(:ODBCAdapter) && [:informix, :ingres].include?(ActiveRecord::Base.connection.dbmsName)
           # Specifying a non-null default generates the following error:
           # Informix:
-          #   "Cannot specify non-null default value for blob column. (-594)" 
+          #   "Cannot specify non-null default value for blob column. (-594)"
           # Ingres:
           #   "Cannot create a default on column of type 'long byte'"
             Person.connection.create_table :binary_testings do |t|
@@ -879,7 +879,7 @@ if ActiveRecord::Base.connection.supports_migrations?
       columns = Person.connection.columns(:binary_testings)
       data_column = columns.detect { |c| c.name == "data" }
 
-      if current_adapter?(:MysqlAdapter)      
+      if current_adapter?(:MysqlAdapter)
         assert_equal '', data_column.default
       else
         assert_nil data_column.default
@@ -952,7 +952,7 @@ if ActiveRecord::Base.connection.supports_migrations?
           t.references :customer
         end
       end
- 
+
       def test_references_column_type_with_polymorphic_adds_type
         with_new_table do |t|
           t.expects(:column).with('taggable_type', :string, {})
@@ -960,14 +960,14 @@ if ActiveRecord::Base.connection.supports_migrations?
           t.references :taggable, :polymorphic => true
         end
       end
-      
+
       def test_belongs_to_works_like_references
         with_new_table do |t|
           t.expects(:column).with('customer_id', :integer, {})
           t.belongs_to :customer
         end
       end
-      
+
       def test_timestamps_creates_updated_at_and_created_at
         with_new_table do |t|
           t.expects(:column).with(:created_at, :datetime)
@@ -975,7 +975,7 @@ if ActiveRecord::Base.connection.supports_migrations?
           t.timestamps
         end
       end
-      
+
       def test_integer_creates_integer_column
         with_new_table do |t|
           t.expects(:column).with(:foo, 'integer', {})
@@ -983,7 +983,7 @@ if ActiveRecord::Base.connection.supports_migrations?
           t.integer :foo, :bar
         end
       end
-      
+
       def test_string_creates_string_column
         with_new_table do |t|
           t.expects(:column).with(:foo, 'string', {})
@@ -991,7 +991,7 @@ if ActiveRecord::Base.connection.supports_migrations?
           t.string :foo, :bar
         end
       end
-      
+
       protected
       def with_new_table
         Person.connection.create_table :delete_me do |t|
@@ -1000,7 +1000,7 @@ if ActiveRecord::Base.connection.supports_migrations?
       ensure
         Person.connection.drop_table :delete_me rescue nil
       end
-      
+
     end # SexyMigrationsTest
   end # uses_mocha
 end
