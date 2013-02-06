@@ -1563,7 +1563,7 @@ begin
           end
 
           ## Adjust Ruby string encoding, if requested
-          if enc=@connection_options[:ruby_string_encoding]
+          if rRows && enc=@connection_options[:ruby_string_encoding]
             rRows.map! do |row|
               row.map do |elt|
                 elt.is_a?(String) ? elt.force_encoding(enc) : elt
