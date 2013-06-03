@@ -28,7 +28,7 @@ require 'active_record/connection_adapters/abstract_adapter'
 require 'arel/visitors/bind_visitor'
 
 begin
-  require_library_or_gem 'odbc' unless self.class.const_defined?(:ODBC)
+  require 'odbc' unless self.class.const_defined?(:ODBC)
   #-------------------------------------------------------------------------
 
   module ActiveRecord
