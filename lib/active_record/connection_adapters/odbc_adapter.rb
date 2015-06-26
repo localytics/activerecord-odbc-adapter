@@ -467,6 +467,8 @@ begin
 
         #---------------------------------------------------------------------
 
+        ADAPTER_NAME = 'ODBC'.freeze
+
         # ODBC constants missing from Christian Werner's Ruby ODBC driver
         SQL_NO_NULLS = 0           # :nodoc:
         SQL_NULLABLE = 1           # :nodoc:
@@ -517,7 +519,6 @@ begin
           # Caches mapping of Rails abstract data types to DBMS native types.
           @abstract2NativeTypeMap = nil
 
-
           @visitor = BindSubstitution.new self
 
           # Set @dbmsName and @dbmsMajorVer from SQLGetInfo output.
@@ -534,6 +535,7 @@ begin
           # Now we know which DBMS we're connected to, extend this ODBCAdapter
           # instance with the appropriate DBMS specific extensions
           @odbcExtFile = "active_record/vendor/odbcext_#{@dbmsName}"
+
           begin
             require "#{@odbcExtFile}"
             self.extend ODBCExt
@@ -549,8 +551,7 @@ begin
 
         # Returns the human-readable name of the adapter.
         def adapter_name
-          @logger.unknown("ODBCAdapter#adapter_name>") if @@trace
-          'ODBC'
+          self.class::ADAPTER_NAME
         end
 
         # Does this adapter support migrations?
@@ -751,7 +752,7 @@ begin
         end
 
         # Rolls back the transaction (and turns on auto-committing).
-        def rollback_db_transaction
+        def exec_rollback_db_transaction
           @logger.unknown("ODBCAdapter#rollback_db_transaction>") if @@trace
           @connection.rollback
           # ODBC chains transactions. Turn autocommit on after rollback to
@@ -773,35 +774,34 @@ begin
           if offset = options[:offset] then sql << " OFFSET #{offset}" end
         end
 
+        def generate_result_set(query_result=[])
+          query_result ||= []
+          fields = query_result[:column_descriptors].map{|x| activeRecIdentCase(x.name)}
+
+          values = []
+          query_result[:rows].each do |row|
+            values << row.map { |val| convertOdbcValToGenericVal(val) }
+          end
+
+          ActiveRecord::Result.new(fields, values)
+        end
+
         # Returns an array of record hashes with the column names as keys and
         # column values as values.
-        def select_all(arel, name=nil, binds = nil)
+        def select_all(arel, name=nil, binds = [])
+          arel, binds = binds_from_relation arel, binds
           sql = to_sql(arel, binds)
           @logger.unknown("ODBCAdapter#select_all>") if @@trace
           @logger.unknown("args=[#{sql}|#{name}]") if @@trace
-          retVal = []
-          hResult = select(sql, name)
-          rRows = hResult[:rows]
-          rColDescs = hResult[:column_descriptors]
 
-          # Convert rows from arrays to hashes
-          if rRows
-            rRows.each do |row|
-              h = Hash.new
-              (0...row.length).each do |iCol|
-                h[activeRecIdentCase(rColDescs[iCol].name)] =
-                  convertOdbcValToGenericVal(row[iCol])
-              end
-              retVal << h
-            end
-          end
-
-          retVal
+          generate_result_set(select(sql, name, binds))
         end
 
         # Returns a record hash with the column names as keys and column values
         # as values.
-        def select_one(sql, name = nil)
+        def select_one(arel, name = nil)
+          arel, binds = binds_from_relation arel, binds
+          sql = to_sql(arel, binds)
           @logger.unknown("ODBCAdapter#select_one>") if @@trace
           @logger.unknown("args=[#{sql}|#{name}]") if @@trace
           retVal = nil
@@ -863,17 +863,9 @@ begin
             end
           end
 
-          # Convert row from array to hash
-          if row then
-            retVal = h = Hash.new
-            (0...row.length).each do |iCol|
-              h[activeRecIdentCase(rColDescs[iCol].name)] =
-                convertOdbcValToGenericVal(row[iCol])
-            end
-          end
-
+          result = generate_result_set([row])
           stmt.drop
-          retVal
+          result
         end
 
         # Executes the SQL statement in the context of this connection.
@@ -1037,6 +1029,7 @@ begin
             # MySQL native ODBC driver doesn't report nullability accurately.
             # So force nullability of 'id' columns
             colNullable = false if colName == 'id'
+            cast_type = lookup_cast_type(colSqlType)
 
             # SQL Server ODBC drivers may wrap default value in parentheses
             if colDefault =~ /^\('(.*)'\)$/ # SQL Server character default
@@ -1059,9 +1052,8 @@ begin
                 end
               end
             end
-            cols << ODBCColumn.new(activeRecIdentCase(colName), table_name,
-              colDefault, colSqlType, colNativeType, colNullable, colLimit,
-              colScale, @odbcExtFile+"_col", booleanColSurrogate, native_database_types())
+            cols << ODBCColumn.new(activeRecIdentCase(colName), colDefault, cast_type, colSqlType, colNativeType, colSqlType,
+              colNullable, colScale, @odbcExtFile+"_col", booleanColSurrogate, native_database_types, colLimit)
           end
           stmt.drop
           cols
@@ -1331,8 +1323,8 @@ begin
         def select_rows(sql, name = nil)
           @logger.unknown("ODBCAdapter#select_rows>") if @@trace
           @logger.unknown("args=[#{sql}|#{name}]") if @@trace
-          hResult = select(sql, name)
-          hResult[:rows]
+
+          generate_result_set(select(sql, name)).rows
         rescue Exception => e
           @logger.unknown("exception=#{e}") if @@trace
           raise StatementInvalid, e.message
@@ -1491,7 +1483,7 @@ begin
         # Executes a SELECT statement, returning a hash containing the
         # result set rows (key :rows) and the result set column descriptors
         # (key :column_descriptors) as arrays.
-        def select(sql, name) # :nodoc:
+        def select(sql, name = nil, binds = []) # :nodoc:
           scrollableCursor = false
           limit = 0
           offset = 0
@@ -1838,9 +1830,9 @@ begin
 
       class ODBCColumn < Column #:nodoc:
 
-        def initialize (name, tableName, default, odbcSqlType, nativeType,
-            null = true, limit = nil, scale = nil, dbExt = nil,
-            booleanColSurrogate = nil, nativeTypes = nil)
+        def initialize(name, default, cast_type, odbcSqlType, nativeType, sql_type = nil, null = true,
+          scale = nil, dbExt = nil, booleanColSurrogate = nil, nativeTypes = nil, limit=nil)
+
           begin
             require "#{dbExt}"
             self.extend ODBCColumnExt
@@ -1849,10 +1841,11 @@ begin
           end
 
           @name, @null = name, null
+          @cast_type        = cast_type
+          @default_function = nil
 
           @precision = extract_precision(odbcSqlType, limit)
           @scale = extract_scale(odbcSqlType, scale)
-          @limit = limit
 
           # nativeType is DBMS type used for column definition
           # sql_type assigned here excludes any length specification
@@ -1870,32 +1863,9 @@ begin
             default_preprocess(nativeType, default)
           end
 
-          @default = type_cast(default)
-          @table = tableName
+          @default = default
           @primary = nil
           @autounique = self.respond_to?(:autoUnique?, true) ? autoUnique? : false
-        end
-
-        # Casts a value (which is a String) to the Ruby class
-        # corresponding to the ActiveRecord abstract type associated
-        # with the column.
-        #
-        # See Column#klass for the Ruby class corresponding to each
-        # ActiveRecord abstract type.
-        #
-        # When casting a column's default value:
-        #   nil => no default value specified
-        #   "'<value>'" => string default value
-        #   "NULL" => default value of NULL
-        #   "TRUNCATED" => default value can't be represented without truncation
-        #
-        # Microsoft's SQL Native Client ODBC driver may return '(null)'
-        # as a column default, instead of NULL, contrary to the ODBC spec'
-        # It also wraps other default values in parentheses.
-        def type_cast(value)
-          return nil if value.nil? || value =~
-            /(^\s*[(]*\s*null\s*[)]*\s*$)|(^\s*truncated\s*$)/i
-          super
         end
 
         private
@@ -1908,8 +1878,7 @@ begin
         # See also:
         # Column#klass (schema_definitions.rb) for the Ruby class corresponding
         # to each abstract data type.
-        def mapSqlTypeToGenericType (odbcSqlType, nativeType, scale,
-            booleanColSurrogate, rawPrecision, nativeTypes)
+        def mapSqlTypeToGenericType (odbcSqlType, nativeType, scale, booleanColSurrogate, rawPrecision, nativeTypes)
           if booleanColSurrogate && booleanColSurrogate.upcase.index(nativeType.upcase)
             fullType = nativeType.dup
             if booleanColSurrogate =~ /\(\d+(,\d+)?\)/ && rawPrecision

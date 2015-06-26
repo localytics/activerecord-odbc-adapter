@@ -5,6 +5,10 @@
 
 # Status
 
+**26-Jun-2015**
+
+Added support for Rails 4.2
+
 **12-Sep-2012**
 
 Added support for Rails / ActiveRecord 3.1.x and 3.2
@@ -52,7 +56,7 @@ its own adapter.
 
 It currently supports Ingres r3, Informix 9.3 or later, Oracle 10g,
 MySQL 5 and OpenLink's Virtuoso
-(Open&nbsp;Source&nbsp;Edition[http://virtuoso.openlinksw.com]), 
+(Open&nbsp;Source&nbsp;Edition[http://virtuoso.openlinksw.com]),
 SQL Server 2000/2005, Sybase ASE 15, DB2 v9, Progress v8/9/10 and PostgreSQL 8.2.
 
 Testing to date has been limited to the ROR 'Expenses' sample
@@ -118,7 +122,7 @@ available system-wide or just within a particular Rails project.
 # Installation as a Gem (recommended)
 
 * If you haven't done so already first add github to rubygems with:
-  
+
   gem sources -a http://gems.github.com
 
 * Install the odbc-rails gem by running:
