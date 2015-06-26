@@ -51,7 +51,7 @@ begin
         ruby_string_encoding = config[:ruby_string_encoding] || nil
 
         if config.has_key?(:dsn)
-	  # Connect using dsn, username, password
+          # Connect using dsn, username, password
           conn = ODBC::connect(dsn, username, password)
           conn_opts = {
               :dsn => dsn, :username => username, :password => password,
@@ -60,7 +60,7 @@ begin
               :ruby_string_encoding => ruby_string_encoding
           }
         else
-	  # Connect using ODBC connection string
+          # Connect using ODBC connection string
           # - supports DSN-based or DSN-less connections
           # e.g. "DSN=virt5;UID=rails;PWD=rails"
           #      "DRIVER={OpenLink Virtuoso};HOST=carlmbp;UID=rails;PWD=rails"
@@ -80,7 +80,7 @@ begin
               :ruby_string_encoding => ruby_string_encoding
           }
         end
-        conn.autocommit = true
+        conn.autocommit = config.has_key?(:autocommit) ? config[:autocommit] : false
         ConnectionAdapters::ODBCAdapter.new(conn, conn_opts, logger)
       end
     end # class Base
@@ -431,7 +431,7 @@ begin
             ODBC::SQL_IDENTIFIER_CASE,
             ODBC::SQL_QUOTED_IDENTIFIER_CASE,
             ODBC::SQL_IDENTIFIER_QUOTE_CHAR,
-            ODBC::SQL_MAX_IDENTIFIER_LEN,		
+            ODBC::SQL_MAX_IDENTIFIER_LEN,
             ODBC::SQL_MAX_TABLE_NAME_LEN,
             ODBC::SQL_USER_NAME,
             ODBC::SQL_DATABASE_NAME
@@ -784,7 +784,7 @@ begin
           rRows = hResult[:rows]
           rColDescs = hResult[:column_descriptors]
 
-          # Convert rows from arrays to hashes					
+          # Convert rows from arrays to hashes
           if rRows
             rRows.each do |row|
               h = Hash.new
@@ -801,8 +801,7 @@ begin
 
         # Returns a record hash with the column names as keys and column values
         # as values.
-        def select_one(arel, name = nil)
-          sql = to_sql(arel)
+        def select_one(sql, name = nil)
           @logger.unknown("ODBCAdapter#select_one>") if @@trace
           @logger.unknown("args=[#{sql}|#{name}]") if @@trace
           retVal = nil
@@ -816,7 +815,7 @@ begin
           # TODO: Translate any OFFSET/LIMIT option to native SQL if DBMS supports it.
           # This will perform much better than simulating them.
           if qry =~ /(\bLIMIT\s+)(\d+)/i then
-            # Check for 'LIMIT 0'	otherwise ignore LIMIT				
+            # Check for 'LIMIT 0' otherwise ignore LIMIT
             if $2.to_i == 0 then return retVal end
           end
 
@@ -843,7 +842,7 @@ begin
 =end
           # Execute the query
           begin
-            stmt = @connection.run(qry)
+            stmt = log(sql, name) { @connection.run(qry) }
           rescue Exception => e
             @logger.unknown("exception=#{e}") if @@trace
             stmt.drop unless stmt.nil?
@@ -889,7 +888,7 @@ begin
             insert(sql, name)
           else
             begin
-              @connection.do(sql)
+              log(sql, name) { @connection.do(sql) }
             rescue Exception => e
               @logger.unknown("exception=#{e}") if @@trace
               raise StatementInvalid, e.message
@@ -1234,7 +1233,7 @@ begin
         def add_column(table_name, column_name, type, options = {})
           @logger.unknown("ODBCAdapter#add_column>") if @@trace
           @logger.unknown("args=[#{table_name}|#{column_name}|#{type}]") if @@trace
-          super(table_name, column_name, type, options)				
+          super(table_name, column_name, type, options)
         rescue Exception => e
           @logger.unknown("exception=#{e}") if @@trace
           raise ActiveRecordError, e.message
@@ -1244,7 +1243,7 @@ begin
         def remove_column(table_name, column_name)
           @logger.unknown("ODBCAdapter#remove_column>") if @@trace
           @logger.unknown("args=[#{table_name}|#{column_name}]") if @@trace
-          super(table_name, column_name)								
+          super(table_name, column_name)
         rescue Exception => e
           @logger.unknown("exception=#{e}") if @@trace
           raise ActiveRecordError, e.message
@@ -1256,7 +1255,7 @@ begin
           @logger.unknown("ODBCAdapter#change_column>") if @@trace
           @logger.unknown("args=[#{table_name}|#{column_name}|#{type}]") if @@trace
           # Base class raises NotImplementedError
-          super(table_name, column_name, type, options)            							
+          super(table_name, column_name, type, options)
         rescue Exception => e
           @logger.unknown("exception=#{e}") if @@trace
           raise ActiveRecordError, e.message
@@ -1266,7 +1265,7 @@ begin
         def change_column_default(table_name, column_name, default)
           @logger.unknown("ODBCAdapter#change_column_default>") if @@trace
           @logger.unknown("args=[#{table_name}|#{column_name}]") if @@trace
-          super(table_name, column_name, default)												
+          super(table_name, column_name, default)
         rescue Exception => e
           @logger.unknown("exception=#{e}") if @@trace
           raise ActiveRecordError, e.message
@@ -1368,7 +1367,7 @@ begin
           retry_count = 0
           begin
             pre_insert(sql, name, pk, id_value, sequence_name) if respond_to?("pre_insert")
-            stmt = @connection.run(sql)
+            stmt = log(sql, name) { @connection.run(sql) }
             table = sql.split(" ", 4)[2]
             res = id_value || last_insert_id(table, sequence_name ||
                 default_sequence_name(table, pk), stmt)
@@ -1412,7 +1411,7 @@ begin
         def add_index(table_name, column_name, options = {})
           @logger.unknown("ODBCAdapter#add_index>") if @@trace
           @logger.unknown("args=[#{table_name}|#{column_name}]") if @@trace
-          super(table_name, column_name, options)																
+          super(table_name, column_name, options)
         rescue Exception => e
           @logger.unknown("exception=#{e}") if @@trace
           raise ActiveRecordError, e.message
@@ -1454,7 +1453,7 @@ begin
               # if there's no limit in the type definition, assume that the type
               # doesn't support a length qualifier
               column_type_sql << "(#{limit || native[:limit]})" if native[:limit]
-              column_type_sql        																											
+              column_type_sql
             end
           else
             @logger.unknown("Warning! Type #{type} not present in native_database_types") if @@trace
@@ -1469,7 +1468,7 @@ begin
         def add_column_options!(sql, options) # :nodoc:
           @logger.unknown("ODBCAdapter#add_column_options!>") if @@trace
           @logger.unknown("args=[#{sql}]") if @@trace
-          super(sql, options)																												
+          super(sql, options)
         rescue Exception => e
           @logger.unknown("exception=#{e}") if @@trace
           raise StatementInvalid, e.message
@@ -1478,7 +1477,7 @@ begin
         # No need to implement beyond tracing wrapper
         def dump_schema_information # :nodoc:
           @logger.unknown("ODBCAdapter#dump_schema_information>") if @@trace
-          super																												
+          super
         rescue Exception => e
           @logger.unknown("exception=#{e}") if @@trace
           raise ActiveRecordError, e.message
@@ -1531,7 +1530,7 @@ begin
 
           # Execute the query
           begin
-            stmt = @connection.run(qry)
+            stmt = log(sql, name) { @connection.run(qry) }
           rescue Exception => e
             stmt.drop unless stmt.nil?
             @logger.unknown("exception=#{e}") if @@trace && name != :force_error
@@ -1564,7 +1563,8 @@ begin
           end
 
           ## Adjust Ruby string encoding, if requested
-          if rRows && enc=@connection_options[:ruby_string_encoding]
+          if enc=@connection_options[:ruby_string_encoding]
+            rRows ||= []
             rRows.map! do |row|
               row.map do |elt|
                 elt.is_a?(String) ? elt.force_encoding(enc) : elt
@@ -1722,7 +1722,7 @@ begin
               # to 255, to avoid add_index exceeding the max. allowed index size
               # of 1250 bytes when creating a composite index.
               res[:limit] = 255 if [:ingres, :sybase, :db2, :progress, :progress89].include?(@dbmsName) && abstractType == :string
-            end					
+            end
           end
           res
         end
@@ -1940,7 +1940,7 @@ begin
               ODBC::SQL_DATETIME then :date
           when ODBC::SQL_TIME, ODBC::SQL_TYPE_TIME then :time
           when ODBC::SQL_TIMESTAMP, ODBC::SQL_TYPE_TIMESTAMP then :timestamp
-          when ODBC::SQL_GUID then :string					
+          when ODBC::SQL_GUID then :string
           else
             # when SQL_UNKNOWN_TYPE
             # (ruby-odbc driver doesn't support following ODBC SQL types:
