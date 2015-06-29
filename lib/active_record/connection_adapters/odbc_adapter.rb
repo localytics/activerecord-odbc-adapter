@@ -1555,7 +1555,7 @@ begin
           end
 
           ## Adjust Ruby string encoding, if requested
-          if enc=@connection_options[:ruby_string_encoding]
+          if(enc = @connection_options[:ruby_string_encoding])
             rRows ||= []
             rRows.map! do |row|
               row.map do |elt|
