@@ -82,7 +82,7 @@ module ODBCExt
 
   def quote_string(string)
     @logger.unknown("ODBCAdapter#quote_string>") if @trace
-    string.gsub(/\\/, '\&\&').gsub(/'/, "''")
+    string.gsub(/\\/, '\&').gsub(/'/, "''")
   end
 
   def default_sequence_name(table, column)
