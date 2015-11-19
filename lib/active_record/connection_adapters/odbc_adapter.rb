@@ -238,6 +238,7 @@ begin
       #
 
       class ODBCAdapter < AbstractAdapter
+        include Marginalia::ActiveRecordInstrumentation
 
         #-------------------------------------------------------------------
         # DbmsInfo holds DBMS-dependent information which cannot be derived
@@ -792,7 +793,6 @@ begin
           arel, binds = binds_from_relation arel, binds
           sql = to_sql(arel, binds)
           @logger.unknown("ODBCAdapter#select_all>") if @@trace
-          @logger.unknown("args=[#{sql}|#{name}]") if @@trace
 
           generate_result_set(select(sql, name, binds))
         end
@@ -802,8 +802,11 @@ begin
         def select_one(arel, name = nil)
           arel, binds = binds_from_relation arel, binds
           sql = to_sql(arel, binds)
+          sql = annotate_sql(sql)
+
           @logger.unknown("ODBCAdapter#select_one>") if @@trace
           @logger.unknown("args=[#{sql}|#{name}]") if @@trace
+
           retVal = nil
           scrollableCursor = false
           offset = 0
@@ -871,8 +874,11 @@ begin
         # Executes the SQL statement in the context of this connection.
         # Returns the number of rows affected.
         def execute(sql, name = nil)
+          sql = annotate_sql(sql)
+
           @logger.unknown("ODBCAdapter#execute>") if @@trace
           @logger.unknown("args=[#{sql}|#{name}]") if @@trace
+
           if sql =~ /^\s*INSERT/i &&
               [:microsoftsqlserver, :virtuoso, :sybase].include?(@dbmsName)
             # Guard against IDENTITY insert problems caused by explicit inserts
@@ -889,10 +895,9 @@ begin
         end
 
         # Returns the ID of the last inserted row.
-        def insert(sql, name = nil, pk = nil, id_value = nil,
-            sequence_name = nil)
+        def insert(sql, name = nil, pk = nil, id_value = nil, sequence_name = nil)
           @logger.unknown("ODBCAdapter#insert>") if @@trace
-          @logger.unknown("args=[#{sql}|#{name}|#{pk}|#{id_value}|#{sequence_name}]") if @@trace
+
           insert_sql(sql, name, pk, id_value, sequence_name)
         end
 
@@ -1299,8 +1304,11 @@ begin
         #--
         # No need to implement beyond a tracing wrapper
         def select_value(sql, name = nil)
+          sql = annotate_sql(sql)
+
           @logger.unknown("ODBCAdapter#select_value>") if @@trace
           @logger.unknown("args=[#{sql}|#{name}]") if @@trace
+
           super(sql, name)
         rescue Exception => e
           @logger.unknown("exception=#{e}") if @@trace
@@ -1310,7 +1318,7 @@ begin
         # Returns an array of the values of the first column in a select.
         def select_values(sql, name = nil)
           @logger.unknown("ODBCAdapter#select_values>") if @@trace
-          @logger.unknown("args=[#{sql}|#{name}]") if @@trace
+
           result = select_all(sql, name)
           result.map{ |v| v.values.first }
         rescue Exception => e
@@ -1322,7 +1330,6 @@ begin
         # Order is the same as that returned by #columns.
         def select_rows(sql, name = nil)
           @logger.unknown("ODBCAdapter#select_rows>") if @@trace
-          @logger.unknown("args=[#{sql}|#{name}]") if @@trace
 
           generate_result_set(select(sql, name)).rows
         rescue Exception => e
@@ -1345,8 +1352,11 @@ begin
         #--
         # No need to implement beyond a tracing wrapper
         def add_limit!(sql, options)
+          sql = annotate_sql(sql)
+
           @logger.unknown("ODBCAdapter#add_limit!>") if @@trace
           @logger.unknown("args=[#{sql}]") if @@trace
+
           super(sql, options)
         rescue Exception => e
           @logger.unknown("exception=#{e}") if @@trace
@@ -1355,6 +1365,10 @@ begin
 
         # Returns the last auto-generated ID from the affected table.
         def insert_sql(sql, name = nil, pk = nil, id_value = nil, sequence_name = nil) # :nodoc:
+          sql = annotate_sql(sql)
+
+          @logger.unknown("args=[#{sql}|#{name}|#{pk}|#{id_value}|#{sequence_name}]") if @@trace
+
           # id_value ::= pre-assigned id
           retry_count = 0
           begin
@@ -1458,8 +1472,11 @@ begin
 
         # No need to implement beyond tracing wrapper
         def add_column_options!(sql, options) # :nodoc:
+          sql = annotate_sql(sql)
+
           @logger.unknown("ODBCAdapter#add_column_options!>") if @@trace
           @logger.unknown("args=[#{sql}]") if @@trace
+
           super(sql, options)
         rescue Exception => e
           @logger.unknown("exception=#{e}") if @@trace
@@ -1484,6 +1501,9 @@ begin
         # result set rows (key :rows) and the result set column descriptors
         # (key :column_descriptors) as arrays.
         def select(sql, name = nil, binds = []) # :nodoc:
+          sql = annotate_sql(sql)
+
+          @logger.unknown("args=[#{sql}|#{name}]") if @@trace
           # scrollableCursor = false
           # limit = 0
           # offset = 0

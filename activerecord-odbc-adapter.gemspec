@@ -14,4 +14,6 @@ Gem::Specification.new do |s|
   s.require_paths = ["lib"]
   s.rubygems_version = %q{2.4.0}
   s.summary = %q{ODBC Data Adapter for ActiveRecord}
+
+  s.add_runtime_dependency 'marginalia', '~> 1.3.0'
 end
