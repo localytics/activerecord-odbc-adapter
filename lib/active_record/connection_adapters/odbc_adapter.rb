@@ -807,20 +807,20 @@ begin
           retVal = nil
           scrollableCursor = false
           offset = 0
-          qry = sql.dup
+          # qry = sql.dup
 
           # Strip OFFSET and LIMIT from query if present, since ODBC doesn't
           # support them in a generic form.
           #
           # TODO: Translate any OFFSET/LIMIT option to native SQL if DBMS supports it.
           # This will perform much better than simulating them.
-          if qry =~ /(\bLIMIT\s+)(\d+)/i then
-            # Check for 'LIMIT 0' otherwise ignore LIMIT
-            if $2.to_i == 0 then return retVal end
-          end
+          # if qry =~ /(\bLIMIT\s+)(\d+)/i then
+          #   # Check for 'LIMIT 0' otherwise ignore LIMIT
+          #   if $2.to_i == 0 then return retVal end
+          # end
 
-          if qry =~ /(\bOFFSET\s+)(\d+)/i then offset = $2.to_i end
-          qry.gsub!(/(\bLIMIT\s+\d+|\bOFFSET\s+\d+)/i, '')
+          # if qry =~ /(\bOFFSET\s+)(\d+)/i then offset = $2.to_i end
+          # qry.gsub!(/(\bLIMIT\s+\d+|\bOFFSET\s+\d+)/i, '')
 
           # It's been assumed that it's quicker to support an offset
           # restriction using a forward-only cursor. A static cursor will
@@ -842,7 +842,7 @@ begin
 =end
           # Execute the query
           begin
-            stmt = log(sql, name) { @connection.run(qry) }
+            stmt = log(sql, name) { @connection.run(sql) }
           rescue Exception => e
             @logger.unknown("exception=#{e}") if @@trace
             stmt.drop unless stmt.nil?
@@ -1484,22 +1484,22 @@ begin
         # result set rows (key :rows) and the result set column descriptors
         # (key :column_descriptors) as arrays.
         def select(sql, name = nil, binds = []) # :nodoc:
-          scrollableCursor = false
-          limit = 0
-          offset = 0
-          qry = sql.dup
+          # scrollableCursor = false
+          # limit = 0
+          # offset = 0
+          # qry = sql.dup
 
           # Strip OFFSET and LIMIT from query if present, since ODBC doesn't
           # support them in a generic form.
           #
           # TODO: Translate any OFFSET/LIMIT option to native SQL if DBMS supports it.
           # This will perform much better than simulating them.
-          if qry =~ /(\bLIMIT\s+)(\d+)/i then
-            if (limit = $2.to_i) == 0 then return Array.new end
-          end
+          # if qry =~ /(\bLIMIT\s+)(\d+)/i then
+          #   if (limit = $2.to_i) == 0 then return Array.new end
+          # end
 
-          if qry =~ /(\bOFFSET\s+)(\d+)/i then offset = $2.to_i end
-          qry.gsub!(/(\bLIMIT\s+\d+|\bOFFSET\s+\d+)/i, '')
+          # if qry =~ /(\bOFFSET\s+)(\d+)/i then offset = $2.to_i end
+          # qry.gsub!(/(\bLIMIT\s+\d+|\bOFFSET\s+\d+)/i, '')
 
           # It's been assumed that it's quicker to support an offset and/or
           # limit restriction using a forward-only cursor. A static cursor will
@@ -1522,7 +1522,7 @@ begin
 
           # Execute the query
           begin
-            stmt = log(sql, name) { @connection.run(qry) }
+            stmt = log(sql, name) { @connection.run(sql) }
           rescue Exception => e
             stmt.drop unless stmt.nil?
             @logger.unknown("exception=#{e}") if @@trace && name != :force_error
@@ -1532,27 +1532,27 @@ begin
           rColDescs = stmt.columns(true)
 
           # Get the rows, handling any offset and/or limit stipulated
-          if scrollableCursor then
-            rRows = nil
-            # scrollableCursor == true => offset > 0
-            if stmt.fetch_scroll(ODBC::SQL_FETCH_ABSOLUTE, offset)
-              rRows = limit > 0 ? stmt.fetch_many(limit) : stmt.fetch_all
-            end
-          else
-            rRows = limit > 0 ? stmt.fetch_many(offset + limit) : stmt.fetch_all
-            # Enforce OFFSET
-            if offset > 0 then
-              if rRows && rRows.length > offset then
-                rRows.slice!(0, offset)
-              else
-                rRows = nil
-              end
-            end
-            # Enforce LIMIT
-            if limit > 0 && rRows && rRows.length > limit then
-              rRows.slice!(limit..(rRows.length-1))
-            end
-          end
+          # if scrollableCursor then
+          #   rRows = nil
+          #   # scrollableCursor == true => offset > 0
+          #   if stmt.fetch_scroll(ODBC::SQL_FETCH_ABSOLUTE, offset)
+          #     rRows = limit > 0 ? stmt.fetch_many(limit) : stmt.fetch_all
+          #   end
+          # else
+          #   rRows = limit > 0 ? stmt.fetch_many(offset + limit) : stmt.fetch_all
+          #   # Enforce OFFSET
+          #   if offset > 0 then
+          #     if rRows && rRows.length > offset then
+          #       rRows.slice!(0, offset)
+          #     else
+          #       rRows = nil
+          #     end
+          #   end
+          #   # Enforce LIMIT
+          #   if limit > 0 && rRows && rRows.length > limit then
+          #     rRows.slice!(limit..(rRows.length-1))
+          #   end
+          # end
 
           ## Adjust Ruby string encoding, if requested
           if(enc = @connection_options[:ruby_string_encoding])
