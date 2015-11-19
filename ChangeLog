@@ -1,3 +1,9 @@
+2015-11-19
+
+  * Updated to 4.2.1
+  * Update to preserve limits on queries
+  * Update to add query comments
+
 2015-06-26
 
   * Updated version to 4.2.0

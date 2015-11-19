@@ -5,6 +5,11 @@
 
 # Status
 
+**19-Nov-2015**
+
+Update to preserve limits on queries
+Update to add query comments
+
 **26-Jun-2015**
 
 Added support for Rails 4.2
