@@ -5,6 +5,9 @@
 
 # Status
 
+**23-Nov-2015**
+  * Update fetch query results
+
 **19-Nov-2015**
 
 Update to preserve limits on queries
