@@ -1550,6 +1550,7 @@ begin
           end
 
           rColDescs = stmt.columns(true)
+          rRows = stmt.fetch_all
 
           # Get the rows, handling any offset and/or limit stipulated
           # if scrollableCursor then
