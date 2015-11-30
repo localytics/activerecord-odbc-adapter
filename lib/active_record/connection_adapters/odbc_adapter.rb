@@ -46,6 +46,7 @@ begin
         end
 
         trace = config[:trace] || false
+        annotate = config.has_key?(:annotate) ? config[:annotate] : true
         conv_num_lits = config[:convert_numeric_literals] || false
         emulate_bools = config[:emulate_booleans] || false
         ruby_string_encoding = config[:ruby_string_encoding] || nil
@@ -57,7 +58,8 @@ begin
               :dsn => dsn, :username => username, :password => password,
               :trace => trace, :conv_num_lits => conv_num_lits,
               :emulate_booleans => emulate_bools,
-              :ruby_string_encoding => ruby_string_encoding
+              :ruby_string_encoding => ruby_string_encoding,
+              :annotate => annotate
           }
         else
           # Connect using ODBC connection string
@@ -77,7 +79,8 @@ begin
               :conn_str => config[:conn_str], :driver => driver,
               :trace => trace, :conv_num_lits => conv_num_lits,
               :emulate_booleans => emulate_bools,
-              :ruby_string_encoding => ruby_string_encoding
+              :ruby_string_encoding => ruby_string_encoding,
+              :annotate => annotate
           }
         end
         conn.autocommit = config.has_key?(:autocommit) ? config[:autocommit] : false
@@ -505,6 +508,8 @@ begin
           # So create an equivalent instance variable
           @trace = @@trace
 
+          @annotate = connection_options[:annotate]
+
           super(connection, logger)
 
           @logger.unknown("ODBCAdapter#initialize>") if @@trace
@@ -802,7 +807,7 @@ begin
         def select_one(arel, name = nil)
           arel, binds = binds_from_relation arel, binds
           sql = to_sql(arel, binds)
-          sql = annotate_sql(sql)
+          sql = annotate_sql(sql) if @annotate
 
           @logger.unknown("ODBCAdapter#select_one>") if @@trace
           @logger.unknown("args=[#{sql}|#{name}]") if @@trace
@@ -874,7 +879,7 @@ begin
         # Executes the SQL statement in the context of this connection.
         # Returns the number of rows affected.
         def execute(sql, name = nil)
-          sql = annotate_sql(sql)
+          sql = annotate_sql(sql) if @annotate
 
           @logger.unknown("ODBCAdapter#execute>") if @@trace
           @logger.unknown("args=[#{sql}|#{name}]") if @@trace
@@ -1304,7 +1309,7 @@ begin
         #--
         # No need to implement beyond a tracing wrapper
         def select_value(sql, name = nil)
-          sql = annotate_sql(sql)
+          sql = annotate_sql(sql) if @annotate
 
           @logger.unknown("ODBCAdapter#select_value>") if @@trace
           @logger.unknown("args=[#{sql}|#{name}]") if @@trace
@@ -1352,7 +1357,7 @@ begin
         #--
         # No need to implement beyond a tracing wrapper
         def add_limit!(sql, options)
-          sql = annotate_sql(sql)
+          sql = annotate_sql(sql) if @annotate
 
           @logger.unknown("ODBCAdapter#add_limit!>") if @@trace
           @logger.unknown("args=[#{sql}]") if @@trace
@@ -1365,7 +1370,7 @@ begin
 
         # Returns the last auto-generated ID from the affected table.
         def insert_sql(sql, name = nil, pk = nil, id_value = nil, sequence_name = nil) # :nodoc:
-          sql = annotate_sql(sql)
+          sql = annotate_sql(sql) if @annotate
 
           @logger.unknown("args=[#{sql}|#{name}|#{pk}|#{id_value}|#{sequence_name}]") if @@trace
 
@@ -1472,7 +1477,7 @@ begin
 
         # No need to implement beyond tracing wrapper
         def add_column_options!(sql, options) # :nodoc:
-          sql = annotate_sql(sql)
+          sql = annotate_sql(sql) if @annotate
 
           @logger.unknown("ODBCAdapter#add_column_options!>") if @@trace
           @logger.unknown("args=[#{sql}]") if @@trace
@@ -1501,7 +1506,7 @@ begin
         # result set rows (key :rows) and the result set column descriptors
         # (key :column_descriptors) as arrays.
         def select(sql, name = nil, binds = []) # :nodoc:
-          sql = annotate_sql(sql)
+          sql = annotate_sql(sql) if @annotate
 
           @logger.unknown("args=[#{sql}|#{name}]") if @@trace
           # scrollableCursor = false
